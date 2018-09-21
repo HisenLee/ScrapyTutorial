@@ -1,0 +1,98 @@
+1.创建项目
+scrapy startproject proj1
+
+2.查看可选参数
+scrapy startproject -h
+
+3.添加log日志
+scrapy startproject --logfile="../log1.log"
+
+4.设置日志级别
+scrapy startproject --loglevel=DEBUG/INFO/WARNING/ERROR/CRITICAL myproject2
+
+5.scrapy的工具命令分为：全局命令和项目命令
+
+6.在不进入项目目录的情况下，输入scrapy -h  即可以查询所有scrapy的全局命令
+a.fetch 命令[显示爬虫爬数据的过程]
+	scrapy fetch http://www.baidu.com
+b.runspider 命令[不依托scrapy项目，直接运行一个爬虫文件]	
+	scrapy runspider myspider1.py
+c.settings 命令[查看配置信息]	
+d.shell 命令[启动交互终端，可以实现在不启动scrapy爬虫的情况下，对网站相应进行调试]
+e.startproject 开启项目命令
+f.version 查看版本命令
+g.view 命令[可以实现下载某个网页到本地并用浏览器查看的功能]
+	scrapy view http://news.163.com
+	
+7.项目命令
+a.bench 命令[测试本地硬件的性能]	
+	scrapy bench[会创建一个本地服务器，并以最大速度爬行，最后生成测试结果，比如每分钟平均大约爬几个网页]
+b.genspider 命令[会根据现有爬虫模板生成新的爬虫文件]
+	scrapy genspider -l 可以列出所有可用模板[basic/crawl/csvfeed/xmlfeed]
+	scrapy genspider -t basic myproject1 baidu.com  [scrapy genspider -t 模板名 爬虫名 待爬取的域名]
+	scrapy genspider -d basic [查看模板内容]
+c.check 命令[可以约束爬虫测试的相关合同]
+	scrapy check myproject1
+d.crawl 命令[启动某个爬虫]	
+	scrapy crawl 爬虫名
+e.list 命令[列出当前项目下可用的爬虫文件]
+	scrapy list
+f.parse 命令[可以实现获取指定的url网址，并使用对应的爬虫文件进行处理和分析]
+	scrapy parse http://www.baidu.com -nolog
+	
+8.在scrapy中，所有的爬虫文件都必须继承自基类Spider
+	
+9.Xpath表达式：xml路径语言，可以定位到xml中的任何位置, 可以理解为类似于jsoup的工具方便解析网页，比正则表达式方便
+a./html/body/h2/text()即可获取到h2标签中的文本
+b.//p 可以提取出所以p标签的所有值
+c.//img[@class="f1"]  可以获取到所有class属性=f1的<img>标签中的内容
+d./从根结点选取  //匹配全部文档的符合条件的标签  .选择当前节点  ..选择当前节点的父节点 @选择属性
+
+10.避免被禁止：
+a.禁止Cookie
+	在settings.py中设置cookies_enabled=false来禁用本地cookie信息，让对方的服务器无法识别出我们的回话信息。
+b.设置下载延时
+	在settings.py中设置download_delay=3（单位是秒）
+c.设置IP池(批量ip)
+	c1.在settings.py中设置IPPOOL=[{"ipaddr":"123.123:88"},{},{}]
+	c2.编写中间件middlewares.py文件
+	c3.在settings.py中开启DOWNLOAD_MIDDLEWARES={}选项，并作出配置
+d.使用用户代理池(批量user-agent来模仿多个浏览器客户端)
+	c1.在settings.py中设置UAPOOL=[{},{}]
+	c2.编辑中间件文件
+	c3.在settings.py中设置DOWNLOAD_MIDDLEWARES={}选项，并作出配置
+
+11.Scrapy中的CrawlSpider，即使用crawl模型可以实现自动爬虫
+ a.scrapy startproject crawspidertest #创建scrapy工程
+ b.cd crawlspidertest #进入目录
+ c.scrapy genspider -l #列出当前所有可用的模板[默认会有4个模板：basic,crawl,cscfeed,xmlfeed]
+ d.创建一个名为sohu,域名为sohu.com,模板为crawl 的CrawlSpider
+	scrapy genspider -t crawl sohu sohu.com 会生成sohu.py文件
+ e.编辑items.py文件，设置要提取的字段，比如要提取新闻，则需要提取出标题和新闻的链接
+ f.编辑pipelines.py文件，该文件用于接收从spider提取出来的item,会把提取到的信息以字典格式返回，
+	可以设置如何处理提取出来的各种字段，比如输出打印或者存入json文件等操作
+ g.设置settings.py文件，开启ITEM_PIPELINES
+ h.编写spiders下的核心文件sohu.py
+ i.scrapy crawl sohu  启动运行该爬虫
+	
+12.LinkExtractor链接提取器的参数设置：
+	a.allow 提取符合对应正则表达式的链接
+	b.deny	不提取符合正则表达式的链接
+	c.restrict_xpaths 使用Xpath表达式与allow共同作用提取出同时符合Xpath表达式和正则表达式的链接
+	d.allow_domains 允许提取的域名，可以设置只提取某个域名下的链接
+	e.deny_domains 设置禁止提取的域名
+	f.follow=True/False 表示是否跟进，如果为true的话表示采取出所有链接后会挨个进行自动爬行，一直循环下去，找到链接中的子链接，设置为False表示第一次循环后断开。
+	# eg.提取链接中包含 ".shtml"字符串的链接, 并且域名是sohu.com
+	rules = ( 
+        Rule(LinkExtractor(allow=('.shtml') allow_domains=(sohu.com)), callback='parse_item', follow=True),
+    )
+	
+13.如果爬取中提示"Forbidden by robots.txt",则需要在settings.txt中修改ROBOTSTXT_OBEY = False
+
+14.使用Scrapy中自带的basic模型爬取数据
+	a.scrapy startproject HeXunBlogs  # 开启项目
+	b.进入项目根目录，scrapy genspider -t basic hexun hexun.com # 创建basic爬虫
+	c.编写items.py文件，建立需要获取的字段
+	d.编写pipelines.py文件，把解析出来的字段存入数据库
+	e.编写settings.py文件，开启ITEM_PIPELINES,COOKIES_ENABLED,ROBOTSTXT_OBEY
+	f.编写hexun.py的核心爬虫文件
